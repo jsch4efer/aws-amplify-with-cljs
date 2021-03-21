@@ -1,0 +1,107 @@
+#+TITLE: AWS Amplify with CLJS
+
+This repository demonstrates how to use AWS Amplify with ClojureScript for a simple authentication and storage usecase.
+The app should enable you to register an user account, log-in, read a file from cloud storage (e.g. S3), and log-out again.
+
+* Prerequisites
+
+This project requies a couple of base dependencies that you need to install with you favourite package manager:
+- Git
+- NodeJS
+- Java
+- Clojure
+
+In order to build and run this project we need to install the following depdencies:
+- AWS Amplify libraries - ~aws-amplify~ and ~aws-amplify-react~
+- React libraries - ~react~ and ~react-dom~
+- Webserver to serve the app: ~serve~
+- Missing libraries for AWS Amplify: ~uuid~ and ~encoding~
+- The most awesome ClojureScript toolchain: ~shadow-cljs~
+
+Just run the following command to install all requires application dependencies:
+
+#+begin_src bash
+npm install
+#+end_src
+
+* Setup AWS Amplify
+
+Please follow the instructions on https://docs.amplify.aws/cli/start/install so that your environment is configured and connected to AWS.
+
+In addition to the basic setup, we need to install to additional AWS Amplify modules ~Auth~ and ~Storage~.
+Again, just follow the correspondig instructions https://docs.amplify.aws/cli/auth/overview and https://docs.amplify.aws/cli/storage/overview.
+For the latter, choose a storage service for static content (i.e. S3).
+
+Now you are ready to push all changes to AWS Amplify:
+
+#+begin_src bash
+amplify push
+#+end_src
+
+This will push your local setup to AWS and provision all required resources.
+Also it will generate ~src/aws-export.js~ that provides environment specific configuration to you local app build.
+You are able to host a local version of the app and use cloud resources of the currently selected environment (e.g. dev).
+AWS Amplify also creates this file during the remote pipline in AWS so your deployed app will also have access to this information.
+
+* How to build and run this project
+
+Ensure that the previous AWS Amplify setup was successful and ~amplify~ created the file ~src/aws-export.js~.
+Now you are ready to build this project from your command line:
+
+#+begin_src bash
+mkdir -p target
+cp -R resources/* target/
+npx shadow-cljs release release
+#+end_src
+
+You can serve your app with the following command:
+
+#+begin_src bash
+npx serve target
+#+end_src
+
+Congratulations, you successfully deployed your app locally and can play with it under http://localhost:5000.
+
+* Remote build and deployment on AWS Amplify
+
+In oder to ship the app on AWS we have to customize the build settings.
+Go to your AWS console via:
+
+#+begin_src bash
+amplify console
+#+end_src
+
+Select ~Amplify console~ and make sure your app is selected.
+Now go to ~App settings~, then ~Build settings~ and edit the ~Build image settings~.
+Use a custom Docker image that provides all repo prerequisites or just use an already prepared one like jsch4efer/clojurescript:17be089c53460292148bcf5c341e31643b90d1e2
+See https://hub.docker.com/r/jsch4efer/clojurescript for more details.
+
+* Caveats
+
+It was a bit tricky to get AWS Amplify libs working with shadow-cljs and reagent.
+To the extend of my research, this was due to differences in module systems (CommonJS vs. EMS).
+Anyhow, the following configuraiton tweaks made it work:
+
+1. Switch compiler options to ES 6
+2. Make sure that ~main~ is used to resolve code from JavaScript libraries. This ensures that AWS Amplify code is resolved with a compatible module system.
+3. Activate support for functional react components in reagent
+4. Install libraries that are used by AWS Amplify but somehow not installed via dependency resolution
+
+For 1. and 2. just andd the following lines to your ~shadow-cljs.edn~ file:
+
+#+begin_src clojure
+:compiler-options {:output-feature-set :es6}
+:js-options {:provider :closure
+             :entry-keys ["main" "module" "browser"]}
+#+end_src
+
+For 3. you need to add these two lines to your ~core.cljs~:
+
+#+begin_src clojure
+(def functional-compiler (r/create-compiler {:function-components true}))
+(r/set-default-compiler! functional-compiler)
+#+end_src
+
+These changes might have unintended side effects.
+
+Happy coding! ☺

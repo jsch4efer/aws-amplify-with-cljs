@@ -1,0 +1,16 @@
+{:source-paths ["src"]
+ :dependencies [[reagent/reagent "1.0.0"]]
+ :dev-http {9090 {:root "target"}}
+ :builds {:dev {:target :browser
+                :output-dir "target"
+                :asset-path "resources"
+                :compiler-options {:output-feature-set :es6}
+                :js-options {:provider :closure
+                             :entry-keys ["main" "module" "browser"]}
+                :modules {:main {:init-fn aws-amplify-with-cljs.core/load!}}
+                :devtools {:after-load aws-amplify-with-cljs.core/reload!}}
+          :release {:target :browser
+                    :output-dir "target"
+                    :asset-path "resources"
+                    :modules {:main {:init-fn aws-amplify-with-cljs.core/load!}}
+                    :devtools {:after-load aws-amplify-with-cljs.core/reload!}}}}
